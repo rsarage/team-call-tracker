@@ -353,7 +353,7 @@
                         <td><span class="status-pill ${u.role === 'manager' ? 'pill-completed' : 'pill-pending'}">${u.role}</span></td>
                         <td>
                             <button class="btn-table-action" style="color: var(--primary);" title="Reset Password" onclick="resetAgentPassword('${u.username}')">🔑</button>
-                            ${u.username !== 'manager' ? `<button class="btn-table-action" style="color: var(--danger); margin-left: 5px;" title="Delete User" onclick="deleteUser('${u.username}')">🗑️</button>` : '<span style="color:#94a3b8; font-size:0.8rem; margin-left:5px;">Protected</span>'}
+                            ${u.username !== 'mshinde' ? `<button class="btn-table-action" style="color: var(--danger); margin-left: 5px;" title="Delete User" onclick="deleteUser('${u.username}')">🗑️</button>` : '<span style="color:#94a3b8; font-size:0.8rem; margin-left:5px;">Protected</span>'}
                         </td>
                     `;
                     tbody.appendChild(tr);

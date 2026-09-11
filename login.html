@@ -80,7 +80,7 @@
                 const masterRef = db.collection("users").doc("manager");
                 const masterSnap = await masterRef.get();
                 if (!masterSnap.exists) {
-                    await masterRef.set({ username: "manager", password: "admin123", role: "manager", name: "Master Manager" });
+                    await masterRef.set({ username: "mshinde", password: "mshinde123", role: "manager", name: "Melwyn Shinde" });
                 }
 
                 // Query Firestore for user credentials

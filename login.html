@@ -38,21 +38,21 @@
         <p style="text-align: center; color: #5f6368; font-size: 0.9rem; margin-bottom: 20px;">Sign in with your assigned credentials.</p>
         
         <div class="form-group">
-            <label for="username">User ID / Username</label>
-            <input type="text" id="username" placeholder="e.g. agent_rahul or manager">
+            <label for="username">Username</label>
+            <input type="text" id="username" placeholder="First Name Last Name">
         </div>
         
         <div class="form-group">
             <label for="password">Password</label>
-            <input type="password" id="password" placeholder="Enter your password">
+            <input type="password" id="password" placeholder="Emp_id">
         </div>
 
         <button class="btn-login" onclick="handleLogin()">Sign In</button>
         <div id="error-msg" class="error-msg"></div>
 
         <div class="setup-note">
-            💡 Default Master Manager Login:<br>
-            <strong>ID:</strong> <code>manager</code> | <strong>Password:</strong> <code>admin123</code>
+            💡 Login:<br>
+            <strong>ID:</strong> <code>FirstName LastName</code> | <strong>Password:</strong> <code>emp.id</code>
         </div>
     </div>
 
@@ -77,7 +77,7 @@
 
             try {
                 // Check if default master manager account needs auto-seeding on first run
-                const masterRef = db.collection("users").doc("manager");
+                const masterRef = db.collection("users").doc("mshinde");
                 const masterSnap = await masterRef.get();
                 if (!masterSnap.exists) {
                     await masterRef.set({ username: "mshinde", password: "mshinde123", role: "manager", name: "Melwyn Shinde" });

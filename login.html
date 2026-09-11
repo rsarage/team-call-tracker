@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Call Tracker - Secure Login</title>
+    <link rel="icon" type="image/svg+xml" href="https://cdn.brandfetch.io/idhM5WMkv7/theme/dark/symbol.svg?c=1dxbfHSJFAPEGdCLU4o5B">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --success: #1e8e3e;
+            --danger: #d93025;
+            --background: #f8fafc;
+            --card: #ffffff;
+            --text: #202124;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--background); color: var(--text); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; box-sizing: border-box; }
+        h2 { margin-top: 0; text-align: center; color: var(--primary); }
+        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; }
+        label { font-weight: 600; font-size: 0.9rem; }
+        input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem; }
+        .btn-login { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+        .btn-login:hover { opacity: 0.9; }
+        .error-msg { color: var(--danger); font-size: 0.85rem; text-align: center; margin-top: 10px; display: none; }
+        .setup-note { font-size: 0.8rem; color: #5f6368; text-align: center; margin-top: 15px; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <h2>Call Tracker Login</h2>
+        <p style="text-align: center; color: #5f6368; font-size: 0.9rem; margin-bottom: 20px;">Sign in with your assigned credentials.</p>
+        
+        <div class="form-group">
+            <label for="username">User ID / Username</label>
+            <input type="text" id="username" placeholder="e.g. agent_rahul or manager">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter your password">
+        </div>
+
+        <button class="btn-login" onclick="handleLogin()">Sign In</button>
+        <div id="error-msg" class="error-msg"></div>
+
+        <div class="setup-note">
+            💡 Default Master Manager Login:<br>
+            <strong>ID:</strong> <code>manager</code> | <strong>Password:</strong> <code>admin123</code>
+        </div>
+    </div>
+
+    <script>
+        async function handleLogin() {
+            const userField = document.getElementById('username').value.trim();
+            const passField = document.getElementById('password').value.trim();
+            const errorEl = document.getElementById('error-msg');
+            errorEl.style.display = 'none';
+
+            if (!userField || !passField) {
+                errorEl.innerText = "Please enter both User ID and Password.";
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (!db) {
+                errorEl.innerText = "Database connection error. Check firebase-config.js.";
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                // Check if default master manager account needs auto-seeding on first run
+                const masterRef = db.collection("users").doc("manager");
+                const masterSnap = await masterRef.get();
+                if (!masterSnap.exists) {
+                    await masterRef.set({ username: "manager", password: "admin123", role: "manager", name: "Master Manager" });
+                }
+
+                // Query Firestore for user credentials
+                const userRef = db.collection("users").doc(userField);
+                const userDoc = await userRef.get();
+
+                if (!userDoc.exists) {
+                    errorEl.innerText = "Invalid User ID or Password.";
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                const userData = userDoc.data();
+
+                if (userData.password !== passField) {
+                    errorEl.innerText = "Incorrect password.";
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                // Save active session token in sessionStorage
+                sessionStorage.setItem('auth_user_id', userData.username);
+                sessionStorage.setItem('auth_user_name', userData.name || userData.username);
+                sessionStorage.setItem('auth_user_role', userData.role);
+
+                // Route based on role
+                if (userData.role === 'manager') {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    window.location.href = 'index.html';
+                }
+
+            } catch (err) {
+                console.error("Login Error:", err);
+                errorEl.innerText = "An error occurred during sign in. Try again.";
+                errorEl.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

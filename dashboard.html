@@ -201,7 +201,7 @@
 
         <!-- 3. Team Live Data Table -->
         <div class="card">
-            <h2 style="margin-top: 0;">Individual Team Performance</h2>
+            <h2 style="margin-top: 0;">Team Report</h2>
             <div class="table-responsive">
                 <table class="excel-table">
                     <thead>
@@ -231,9 +231,9 @@
         <!-- 4. Callback Reminders Agenda -->
         <div class="card">
             <h2 style="margin-top: 0; margin-bottom: 5px; display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 1.3rem;">📅</span> Callback Reminders & Schedule
+                <span style="font-size: 1.3rem;">📅</span> Callback Reminders
             </h2>
-            <p style="color: #64748b; margin: 0 0 10px 0; font-size: 0.9rem;">Live view of callbacks scheduled by your agents. Sorted chronologically.</p>
+            <p style="color: #64748b; margin: 0 0 10px 0; font-size: 0.9rem;">Callbacks scheduled by your agents.</p>
             
             <div id="callback-reminders-container" class="calendar-container"></div>
         </div>
@@ -248,15 +248,15 @@
             <div class="settings-grid" style="margin-bottom: 15px;">
                 <div class="settings-group">
                     <label style="font-weight: 600; font-size: 0.85rem;">Full Name</label>
-                    <input type="text" id="new-user-name" placeholder="e.g. John Doe">
+                    <input type="text" id="new-user-name" placeholder="John Doe">
                 </div>
                 <div class="settings-group">
                     <label style="font-weight: 600; font-size: 0.85rem;">User ID / Username</label>
-                    <input type="text" id="new-user-id" placeholder="e.g. agent_john">
+                    <input type="text" id="new-user-id" placeholder="john_doe">
                 </div>
                 <div class="settings-group">
                     <label style="font-weight: 600; font-size: 0.85rem;">Password</label>
-                    <input type="text" id="new-user-pass" placeholder="e.g. pass123">
+                    <input type="text" id="new-user-pass" placeholder="pass123">
                 </div>
                 <button class="btn-action" style="background: var(--primary);" onclick="createNewUser()">+ Add Member</button>
             </div>

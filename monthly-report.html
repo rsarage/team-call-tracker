@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cumulative Analytics - Call Tracker</title>
+    <link rel="icon" type="image/svg+xml" href="https://cdn.brandfetch.io/idhM5WMkv7/theme/dark/symbol.svg?c=1dxbfHSJFAPEGdCLU4o5B">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <style>
+        :root {
+            --primary: #1a73e8; 
+            --success: #1e8e3e; 
+            --danger: #d93025;  
+            --warning: #f9ab00; 
+            --background: #f8fafc;
+            --card: #ffffff;
+            --text: #202124;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--background); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .nav-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--card); padding: 12px 20px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); gap: 10px; }
+        .nav-link { text-decoration: none; color: var(--primary); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+        
+        .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: #f1f5f9; padding: 15px; border-radius: 8px; text-align: center; border-left: 4px solid #8b5cf6; }
+        .stat-card h3 { margin: 0 0 5px 0; font-size: 0.85rem; color: #5f6368; text-transform: uppercase; }
+        .stat-card p { margin: 0; font-size: 1.5rem; font-weight: bold; color: var(--text); }
+        
+        .table-responsive { width: 100%; overflow-x: auto; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; -webkit-overflow-scrolling: touch; }
+        .excel-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 1000px; }
+        .excel-table th { background: #4c1d95; color: #ffffff; font-weight: 600; text-align: center; padding: 12px 10px; border: 1px solid #334155; white-space: nowrap; }
+        .excel-table td { border: 1px solid #cbd5e1; padding: 10px 8px; text-align: center; }
+        .excel-table tr:nth-child(even) { background-color: #f8fafc; }
+        
+        .btn-action { padding: 12px 20px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 1rem; white-space: nowrap; transition: opacity 0.2s; }
+        .btn-action:hover { opacity: 0.9; }
+        
+        .date-picker-wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .date-picker-wrap input { padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 1rem; }
+    </style>
+</head>
+<body>
+    <script>
+        // Ensure user is signed in as a manager
+        const role = sessionStorage.getItem('auth_user_role');
+        if (role !== 'manager') {
+            alert("⚠️ Access Denied: Manager credentials required for Analytics.");
+            window.location.href = 'login.html';
+        }
+    </script>
+
+    <div class="container">
+        <!-- Navigation -->
+        <div class="nav-bar">
+            <div>
+                <a href="dashboard.html" class="nav-link">&larr; Back to Manager Dashboard</a>
+            </div>
+            <div style="font-weight: bold; color: #4c1d95; font-size: 1.2rem;">
+                📈 Cumulative Team Analytics
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-top: 0; margin-bottom: 15px;">Generate Historic Report</h2>
+            <div class="date-picker-wrap">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label style="font-weight: 600;">Start Date:</label>
+                    <input type="date" id="start-date">
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label style="font-weight: 600;">End Date:</label>
+                    <input type="date" id="end-date">
+                </div>
+                <button class="btn-action" style="background: var(--primary);" onclick="generateReport()">🔍 Fetch Data</button>
+                <button class="btn-action" style="background: #10b981;" onclick="exportCumulativeExcel()">📥 Download Excel</button>
+                <span id="report-status" style="font-weight: bold; font-size: 0.9rem; margin-left: 10px;"></span>
+            </div>
+        </div>
+
+        <!-- Aggregate Summary Rollup -->
+        <div class="summary-grid">
+            <div class="stat-card">
+                <h3>Total Agents (Period)</h3>
+                <p id="sum-members">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Team Calls</h3>
+                <p id="sum-calls">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Cumulative Avg AHT</h3>
+                <p id="sum-aht">0s</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Forms Filled</h3>
+                <p id="sum-forms">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total SVs Booked</h3>
+                <p id="sum-sv">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Good Calls</h3>
+                <p id="sum-good">0</p>
+            </div>
+        </div>
+
+        <!-- Cumulative Team Data Table -->
+        <div class="card">
+            <h2 style="margin-top: 0;">Accumulated Agent Totals</h2>
+            <div class="table-responsive">
+                <table class="excel-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; padding-left: 15px;">Agent Name</th>
+                            <th>Days Active</th>
+                            <th>Total Calls</th>
+                            <th>Transfers</th>
+                            <th>SV Booked</th>
+                            <th>Forms Filled</th>
+                            <th>Good Calls</th>
+                            <th>Sales Pitched</th>
+                            <th>Overall Pitch Rate %</th>
+                            <th>Tickets Created</th>
+                            <th>Overall AHT (Secs)</th>
+                            <th>Overall Call Coding %</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analytics-table-body">
+                        <tr><td colspan="12" style="padding: 25px; color: #64748b;">Select a date range and click "Fetch Data" to view analytics...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let accumulatedDataCache = [];
+        let dateRangeString = "";
+
+        // Helper to get an array of YYYY-MM-DD strings between two dates
+        function getDatesInRange(startStr, endStr) {
+            let dates = [];
+            // Parse string safely ignoring local timezone offset variations
+            let current = new Date(startStr + 'T12:00:00Z'); 
+            let end = new Date(endStr + 'T12:00:00Z');
+            
+            while (current <= end) {
+                let yyyy = current.getUTCFullYear();
+                let mm = String(current.getUTCMonth() + 1).padStart(2, '0');
+                let dd = String(current.getUTCDate()).padStart(2, '0');
+                dates.push(`${yyyy}-${mm}-${dd}`);
+                current.setUTCDate(current.getUTCDate() + 1);
+            }
+            return dates;
+        }
+
+        async function generateReport() {
+            if (!db) return alert("Database not connected.");
+            
+            const start = document.getElementById('start-date').value;
+            const end = document.getElementById('end-date').value;
+            
+            if (!start || !end) return alert('Please select both a Start Date and an End Date.');
+            if (start > end) return alert('Start Date cannot be after End Date.');
+
+            const datesToFetch = getDatesInRange(start, end);
+            dateRangeString = `${start} to ${end}`;
+            
+            const statusEl = document.getElementById('report-status');
+            statusEl.style.color = "var(--primary)";
+            statusEl.innerText = `⏳ Fetching records across ${datesToFetch.length} day(s)...`;
+
+            const agentStatsMap = new Map();
+
+            try {
+                // Fetch all dates simultaneously for speed
+                const fetchPromises = datesToFetch.map(dateStr => 
+                    db.collection("records").doc(dateStr).collection("members").get()
+                );
+                
+                const snapshots = await Promise.all(fetchPromises);
+
+                snapshots.forEach((snap) => {
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        const id = data.agentId || doc.id;
+                        const m = data.metrics || {};
+                        const time = data.totalCallTimeSecs || 0;
+                        
+                        if (!agentStatsMap.has(id)) {
+                            agentStatsMap.set(id, {
+                                agentName: data.agentName || 'Unknown Agent',
+                                activeDays: 0, calls: 0, time: 0, tickets: 0, 
+                                forms: 0, sv: 0, pitched: 0, good: 0, transfers: 0
+                            });
+                        }
+                        
+                        const stat = agentStatsMap.get(id);
+                        stat.activeDays += 1;
+                        stat.calls += (m.calls || 0);
+                        stat.time += time;
+                        stat.tickets += (m.tickets || 0);
+                        stat.forms += (m.forms || 0);
+                        stat.sv += (m.sv || 0);
+                        stat.pitched += (m.pitched || 0);
+                        stat.good += (m.good || 0);
+                        stat.transfers += (m.transfers || 0);
+                    });
+                });
+                
+                accumulatedDataCache = Array.from(agentStatsMap.values());
+                renderAnalyticsTable(accumulatedDataCache);
+                
+                statusEl.style.color = "var(--success)";
+                statusEl.innerText = `✅ Success! Aggregated data for ${accumulatedDataCache.length} agents.`;
+                setTimeout(() => statusEl.innerText = '', 4000);
+
+            } catch (err) {
+                console.error("Analytics fetch error:", err);
+                statusEl.style.color = "var(--danger)";
+                statusEl.innerText = "❌ Error fetching data. Check connection.";
+            }
+        }
+
+        function renderAnalyticsTable(members) {
+            const tbody = document.getElementById('analytics-table-body');
+            if (members.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12" style="padding: 25px; color: #64748b;">No call data recorded in this time period.</td></tr>`;
+                updateSummaryTotals(0, 0, 0, 0, 0, 0);
+                return;
+            }
+
+            let grandTotalCalls = 0, grandTotalTime = 0, grandTotalForms = 0, grandTotalSV = 0, grandTotalGood = 0;
+            tbody.innerHTML = '';
+
+            members.forEach(m => {
+                const aht = m.calls ? Math.round(m.time / m.calls) : 0;
+                const pitchRate = m.calls ? Math.round((m.pitched / m.calls) * 100) : 0;
+                const codingPercent = m.calls ? Math.round((m.tickets / m.calls) * 100) : 0;
+
+                grandTotalCalls += m.calls;
+                grandTotalTime += m.time;
+                grandTotalForms += m.forms;
+                grandTotalSV += m.sv;
+                grandTotalGood += m.good;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="text-align: left; padding-left: 15px; font-weight: 600;">${m.agentName}</td>
+                    <td style="color: #4c1d95; font-weight: bold;">${m.activeDays}</td>
+                    <td><strong>${m.calls}</strong></td>
+                    <td>${m.transfers}</td>
+                    <td>${m.sv}</td>
+                    <td>${m.forms}</td>
+                    <td>${m.good}</td>
+                    <td>${m.pitched}</td>
+                    <td><strong>${pitchRate}%</strong></td>
+                    <td>${m.tickets}</td>
+                    <td><strong>${aht}</strong></td>
+                    <td>${codingPercent}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const overallAvgAht = grandTotalCalls ? Math.round(grandTotalTime / grandTotalCalls) : 0;
+            updateSummaryTotals(members.length, grandTotalCalls, overallAvgAht, grandTotalForms, grandTotalSV, grandTotalGood);
+        }
+
+        function updateSummaryTotals(membersCount, calls, aht, forms, sv, good) {
+            document.getElementById('sum-members').innerText = membersCount;
+            document.getElementById('sum-calls').innerText = calls;
+            document.getElementById('sum-aht').innerText = `${aht}s`;
+            document.getElementById('sum-forms').innerText = forms;
+            document.getElementById('sum-sv').innerText = sv;
+            document.getElementById('sum-good').innerText = good;
+        }
+
+        function exportCumulativeExcel() {
+            if (typeof XLSX === 'undefined') return alert("Excel export library loading...");
+            if (accumulatedDataCache.length === 0) return alert("No data available to export. Generate a report first.");
+
+            const headers = [
+                "Agent Name", "Days Active", "Total Calls", "Transfers", "SV Booked", "Forms Filled",
+                "Good Calls", "Sales Pitched", "Overall Pitch Rate %", "Tickets Created", "Overall AHT (Secs)",
+                "Overall Call Coding %"
+            ];
+
+            const rows = [headers];
+
+            accumulatedDataCache.forEach(m => {
+                const aht = m.calls ? Math.round(m.time / m.calls) : 0;
+                const pitchRate = m.calls ? Math.round((m.pitched / m.calls) * 100) + '%' : '0%';
+                const codingPercent = m.calls ? Math.round((m.tickets / m.calls) * 100) + '%' : '0%';
+
+                rows.push([
+                    m.agentName, m.activeDays, m.calls, m.transfers, m.sv, m.forms,
+                    m.good, m.pitched, pitchRate, m.tickets, aht, codingPercent
+                ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            const headerStyle = { fill: { fgColor: { rgb: "4C1D95" } }, font: { color: { rgb: "FFFFFF" }, bold: true }, border: { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } }, alignment: { horizontal: "center", vertical: "center" } };
+            const valueStyle = { border: { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } }, alignment: { horizontal: "center", vertical: "center" } };
+
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const ref = XLSX.utils.encode_cell({ c: C, r: R });
+                    if (!ws[ref]) continue;
+                    ws[ref].s = (R === 0) ? headerStyle : valueStyle;
+                }
+            }
+
+            ws['!cols'] = [{ wch: 22 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 18 }, { wch: 20 }];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Analytics");
+            XLSX.writeFile(wb, `Cumulative-Analytics-${dateRangeString}.xlsx`);
+        }
+    </script>
+</body>
+</html>

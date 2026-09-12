@@ -67,10 +67,10 @@
         .excel-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 1100px; }
         .excel-table th { background: #17365D; color: #ffffff; font-weight: 600; text-align: center; padding: 10px 8px; border: 1px solid #334155; white-space: nowrap; }
         .excel-table td { border: 1px solid #cbd5e1; padding: 4px; vertical-align: middle; background-color: #ffffff; }
-        .excel-table td input, .excel-table td select { width: 100%; border: none; outline: none; background: transparent; font-size: 0.88rem; box-sizing: border-box; padding: 6px; font-family: inherit; font-weight: 500; }
+        .excel-table td input, .excel-table td select { width: 100%; border: none; outline: none; background: transparent; font-size: 0.88rem; box-sizing: border-box; padding: 6px; font-family: inherit; font-weight: 500; transition: background-color 0.2s, color 0.2s; }
         .excel-table td input:focus, .excel-table td select:focus { background-color: #e0f2fe; border-radius: 4px; }
         
-        .btn-table-action { background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 4px 6px; border-radius: 4px; }
+        .btn-table-action { background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 4px 6px; border-radius: 4px; transition: background 0.2s; }
         .btn-table-action:hover { background-color: #e2e8f0; }
         
         .est-clock { font-family: monospace; font-weight: bold; font-size: 0.95rem; color: var(--primary); background: #eff6ff; padding: 6px 12px; border-radius: 6px; border: 1px solid #bfdbfe; display: inline-block; white-space: nowrap; }
@@ -231,8 +231,13 @@
         let callbackRows = [];
         let nextRowId = 1;
         let activeAlarmRowId = null;
+        let isDataLoaded = false;
 
-        // Strictly use login username to prevent duplicate agent entries
+        // HELPER FUNCTIONS RESTORED
+        function getTodayESTString() {
+            return new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+        }
+
         function getAgentId() {
             return sessionStorage.getItem('auth_user_id') || 'unassigned_agent';
         }
@@ -253,6 +258,7 @@
         }
 
         function init() {
+            // Set name WITHOUT triggering a cloud sync immediately to prevent race conditions
             document.getElementById('agent-name').value = getAgentName();
 
             const container = document.getElementById('counters-container');
@@ -274,7 +280,6 @@
 
             listenToTeamGoals();
             loadTodayAgentData();
-            addNewRow();
             setInterval(masterScheduleTick, 1000);
         }
 
@@ -286,12 +291,13 @@
                     targetGoals.aht = data.aht || 951;
                     targetGoals.coding = data.coding || 80;
                     targetGoals.sv = data.sv || 3;
-                    
-                    document.getElementById('display-target-aht').innerText = targetGoals.aht;
-                    document.getElementById('display-target-coding').innerText = targetGoals.coding + '%';
-                    document.getElementById('display-target-sv').innerText = targetGoals.sv;
-                    calculateMetrics();
                 }
+                
+                // Clear "Loading..." text even if document is missing
+                document.getElementById('display-target-aht').innerText = targetGoals.aht;
+                document.getElementById('display-target-coding').innerText = targetGoals.coding + '%';
+                document.getElementById('display-target-sv').innerText = targetGoals.sv;
+                calculateMetrics();
             });
         }
 
@@ -392,7 +398,8 @@
         }
 
         function triggerCloudSync() {
-            if (!db) return;
+            if (!db || !isDataLoaded) return; // Prevent saving 0s before historical data loads
+            
             const statusEl = document.getElementById('sync-status');
             statusEl.innerText = "⏳ Saving...";
             statusEl.style.backgroundColor = "var(--warning)";
@@ -448,11 +455,17 @@
                     }
                     if (data.callbacks && data.callbacks.length > 0) {
                         callbackRows = data.callbacks;
-                        renderCallbackTable();
                     }
-                    calculateMetrics();
                 }
-            } catch (err) { console.warn("Session restore note:", err); }
+            } catch (err) { 
+                console.warn("Session restore failed:", err); 
+            } finally {
+                // Always render and allow syncing AFTER load attempt completes
+                if (callbackRows.length === 0) addNewRow();
+                else renderCallbackTable();
+                calculateMetrics();
+                isDataLoaded = true; 
+            }
         }
 
         function createRowObject() {

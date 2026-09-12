@@ -51,6 +51,20 @@
             border-radius: 8px;
             border: 1px solid #cbd5e1;
             align-self: flex-start; 
+            
+            /* --- NEW ZOOM EFFECT CSS --- */
+            transition: all 0.3s ease-in-out; /* Makes the zoom animation smooth */
+            transform-origin: top center; /* Ensures it zooms out from the top so it doesn't cover the title */
+            position: relative;
+            z-index: 1;
+        }
+
+        /* What happens when the cursor hovers over the image */
+        .image-card img:hover {
+            transform: scale(1.4); /* Zooms the image to 140% of its size */
+            z-index: 50; /* Brings the zoomed image to the very front */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); /* Adds a deep shadow to separate it from the background */
+            cursor: zoom-in; /* Changes your cursor icon */
         }
     </style>
 </head>

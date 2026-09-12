@@ -117,6 +117,7 @@
     </div>
 
     <div class="container">
+        <!-- Navigation -->
         <div class="nav-bar">
             <div>
                 <a onclick="logout()" class="nav-link" style="color: var(--danger);">&larr; Sign Out</a>
@@ -131,7 +132,6 @@
                 </div>
             </div>
             
-            <!-- NEW ANALYTICS BUTTON -->
             <div>
                 <a href="monthly-report.html" class="btn-action" style="background: #4c1d95; text-decoration: none;">📈 View Monthly Analytics</a>
             </div>
@@ -147,7 +147,7 @@
             </button>
         </div>
 
-        <!-- Manager Settings: Team Goals -->
+        <!-- 1. Manager Settings: Team Goals -->
         <div class="card" style="background-color: #eff6ff; border: 1px solid #bfdbfe;">
             <h2 style="margin-top: 0; display: flex; justify-content: space-between; align-items: baseline;">
                 <span>Team Goals</span>
@@ -171,7 +171,74 @@
             <span id="goal-save-status" style="color: var(--success); font-weight: bold; font-size: 0.85rem; margin-top: 10px; display: none;">✅ Goals saved and synced to team!</span>
         </div>
 
-        <!-- Enhanced User Account Management -->
+        <!-- 2. Aggregate Summary Rollup -->
+        <div class="summary-grid">
+            <div class="stat-card">
+                <h3>Active Members</h3>
+                <p id="sum-members">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Team Calls</h3>
+                <p id="sum-calls">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Team Avg AHT</h3>
+                <p id="sum-aht">0s</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Forms Filled</h3>
+                <p id="sum-forms">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total SVs Booked</h3>
+                <p id="sum-sv">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Good Calls</h3>
+                <p id="sum-good">0</p>
+            </div>
+        </div>
+
+        <!-- 3. Team Live Data Table -->
+        <div class="card">
+            <h2 style="margin-top: 0;">Individual Team Performance</h2>
+            <div class="table-responsive">
+                <table class="excel-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; padding-left: 15px;">Agent Name</th>
+                            <th>Total Calls</th>
+                            <th>Transfers</th>
+                            <th>SV Booked</th>
+                            <th>Forms Filled</th>
+                            <th>Good Calls</th>
+                            <th>Sales Pitched</th>
+                            <th>Pitch Rate %</th>
+                            <th>Tickets Created</th>
+                            <th>AHT (Secs)</th>
+                            <th>Call Coding %</th>
+                            <th>Last Active</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="team-table-body">
+                        <tr><td colspan="13" style="padding: 20px; color: #64748b;">Waiting for live team data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 4. Callback Reminders Agenda -->
+        <div class="card">
+            <h2 style="margin-top: 0; margin-bottom: 5px; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.3rem;">📅</span> Callback Reminders & Schedule
+            </h2>
+            <p style="color: #64748b; margin: 0 0 10px 0; font-size: 0.9rem;">Live view of callbacks scheduled by your agents. Sorted chronologically.</p>
+            
+            <div id="callback-reminders-container" class="calendar-container"></div>
+        </div>
+
+        <!-- 5. Enhanced User Account Management (Moved to Bottom) -->
         <div class="card" style="background-color: #fdf4ff; border: 1px solid #f5d0fe;">
             <h2 style="margin-top: 0; display: flex; align-items: center; gap: 10px;">
                 <span>👥 Team Member Account Management</span>
@@ -210,70 +277,6 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-
-        <div class="summary-grid">
-            <div class="stat-card">
-                <h3>Active Members</h3>
-                <p id="sum-members">0</p>
-            </div>
-            <div class="stat-card">
-                <h3>Total Team Calls</h3>
-                <p id="sum-calls">0</p>
-            </div>
-            <div class="stat-card">
-                <h3>Team Avg AHT</h3>
-                <p id="sum-aht">0s</p>
-            </div>
-            <div class="stat-card">
-                <h3>Total Forms Filled</h3>
-                <p id="sum-forms">0</p>
-            </div>
-            <div class="stat-card">
-                <h3>Total SVs Booked</h3>
-                <p id="sum-sv">0</p>
-            </div>
-            <div class="stat-card">
-                <h3>Total Good Calls</h3>
-                <p id="sum-good">0</p>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2 style="margin-top: 0;">Individual Team Performance</h2>
-            <div class="table-responsive">
-                <table class="excel-table">
-                    <thead>
-                        <tr>
-                            <th style="text-align: left; padding-left: 15px;">Agent Name</th>
-                            <th>Total Calls</th>
-                            <th>Transfers</th>
-                            <th>SV Booked</th>
-                            <th>Forms Filled</th>
-                            <th>Good Calls</th>
-                            <th>Sales Pitched</th>
-                            <th>Pitch Rate %</th>
-                            <th>Tickets Created</th>
-                            <th>AHT (Secs)</th>
-                            <th>Call Coding %</th>
-                            <th>Last Active</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="team-table-body">
-                        <tr><td colspan="13" style="padding: 20px; color: #64748b;">Waiting for live team data...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2 style="margin-top: 0; margin-bottom: 5px; display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 1.3rem;">📅</span> Callback Reminders & Schedule
-            </h2>
-            <p style="color: #64748b; margin: 0 0 10px 0; font-size: 0.9rem;">Live view of callbacks scheduled by your agents. Sorted chronologically.</p>
-            
-            <div id="callback-reminders-container" class="calendar-container"></div>
         </div>
     </div>
 

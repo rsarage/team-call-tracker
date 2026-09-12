@@ -100,9 +100,14 @@
                     return;
                 }
 
+                // Generate Session Token to prevent duplicate data from multiple tabs/logins
+                const sessionToken = Math.random().toString(36).substring(2, 15);
+                await userRef.update({ sessionToken: sessionToken });
+
                 sessionStorage.setItem('auth_user_id', userData.username);
                 sessionStorage.setItem('auth_user_name', userData.name || userData.username);
                 sessionStorage.setItem('auth_user_role', userData.role);
+                sessionStorage.setItem('session_token', sessionToken);
 
                 if (userData.role === 'manager') {
                     window.location.href = 'dashboard.html';

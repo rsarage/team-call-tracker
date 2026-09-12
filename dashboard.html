@@ -78,6 +78,7 @@
         .date-mask-wrapper:hover .date-mask-text { border-color: var(--primary) !important; background-color: #f1f3f4 !important; }
         .date-mask-wrapper:hover .date-mask-icon { fill: var(--primary); }
 
+        /* Modal Styles */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 440px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); }
     </style>
@@ -118,7 +119,7 @@
     <div class="container">
         <div class="nav-bar">
             <div>
-                <a onclick="logout()" class="nav-link">&larr; Sign Out</a>
+                <a onclick="logout()" class="nav-link" style="color: var(--danger);">&larr; Sign Out</a>
             </div>
             
             <div class="date-picker-wrap">
@@ -129,6 +130,11 @@
                     <svg class="date-mask-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v560q0 33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm0-480h560v-80H200v80Zm0 0v-80 80Zm280 240q-17 0-28.5-11.5T440-440q0-17 11.5-28.5T480-480q17 0 28.5 11.5T520-440q0 17-11.5 28.5T480-400Zm-160 0q-17 0-28.5-11.5T280-440q0-17 11.5-28.5T320-480q17 0 28.5 11.5T360-440q0 17-11.5 28.5T320-400Zm320 0q-17 0-28.5-11.5T600-440q0-17 11.5-28.5T640-480q17 0 28.5 11.5T680-440q0 17-11.5 28.5T640-400Z"/></svg>
                 </div>
             </div>
+            
+            <!-- NEW ANALYTICS BUTTON -->
+            <div>
+                <a href="monthly-report.html" class="btn-action" style="background: #4c1d95; text-decoration: none;">📈 View Monthly Analytics</a>
+            </div>
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
@@ -137,10 +143,11 @@
                 <p style="margin: 4px 0 0 0; color: #64748b;">Live data sync across all active team members.</p>
             </div>
             <button class="btn-action" onclick="exportTeamExcel()">
-                📥 Download Report
+                📥 Download Daily Report
             </button>
         </div>
 
+        <!-- Manager Settings: Team Goals -->
         <div class="card" style="background-color: #eff6ff; border: 1px solid #bfdbfe;">
             <h2 style="margin-top: 0; display: flex; justify-content: space-between; align-items: baseline;">
                 <span>Team Goals</span>
@@ -540,7 +547,6 @@
             return 'pill-pending';
         }
 
-        // --- Manager Dashboard: Send Reminder to Agent ---
         async function remindAgent(agentId, customerName) {
             if(!agentId || agentId === 'undefined') return alert("Cannot send reminder: Agent ID is missing for this record.");
             try {

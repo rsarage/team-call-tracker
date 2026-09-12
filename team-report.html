@@ -77,6 +77,7 @@
     </script>
 
     <div class="container">
+        <!-- Navigation -->
         <div class="nav-bar">
             <div>
                 <a href="index.html" class="nav-link">&larr; Back to My Call Tracker</a>
@@ -162,6 +163,8 @@
     </div>
 
     <script>
+        function getTodayESTString() { return new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }); }
+        
         function formatDate(dateStr) {
             if (!dateStr || !dateStr.includes('-')) return dateStr;
             const [year, month, day] = dateStr.split('-');
@@ -197,7 +200,6 @@
                     snapshot.forEach(doc => { 
                         let data = doc.data();
                         data.docId = doc.id;
-                        // Deduplicate on exact agent ID
                         memberMap.set(data.agentId || doc.id, data); 
                     });
                     const teamData = Array.from(memberMap.values());
@@ -284,7 +286,7 @@
             });
 
             if (allCallbacks.length === 0) {
-                container.innerHTML = `<div style="background: #f1f5f9; padding: 20px; border-radius: 8px; text-align: center; color: #64748b; font-style: italic;">No callbacks logged across the team for this report date.</div>`;
+                container.innerHTML = `<div style="background: #f1f5f9; padding: 20px; border-radius: 8px; text-align: center; color: #64748b; font-style: italic;">No callbacks have been logged by the team on this report date.</div>`;
                 return;
             }
 

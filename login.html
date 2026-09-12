@@ -13,52 +13,52 @@
     <style>
         :root {
             --primary: #1a73e8;
-            --success: #1e8e3e;
             --danger: #d93025;
             --background: #f8fafc;
             --card: #ffffff;
             --text: #202124;
         }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--background); color: var(--text); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-card { background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--background); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .login-card { background: var(--card); padding: 32px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); width: 100%; max-width: 400px; box-sizing: border-box; }
         h2 { margin-top: 0; text-align: center; color: var(--primary); }
-        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; }
+        .form-group { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
         label { font-weight: 600; font-size: 0.9rem; }
-        input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem; }
-        .btn-login { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 1rem; cursor: pointer; margin-top: 10px; }
-        .btn-login:hover { opacity: 0.9; }
-        .error-msg { color: var(--danger); font-size: 0.85rem; text-align: center; margin-top: 10px; display: none; }
-        .setup-note { font-size: 0.8rem; color: #5f6368; text-align: center; margin-top: 15px; line-height: 1.4; }
+        input { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem; outline: none; }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
+        .btn-login { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 1rem; cursor: pointer; margin-top: 8px; }
+        .btn-login:hover { opacity: 0.95; }
+        .error-msg { color: var(--danger); font-size: 0.85rem; text-align: center; margin-top: 12px; display: none; font-weight: 500; }
+        .setup-note { font-size: 0.8rem; color: #5f6368; text-align: center; margin-top: 20px; line-height: 1.5; border-top: 1px solid #e2e8f0; padding-top: 15px; }
     </style>
 </head>
 <body>
 
     <div class="login-card">
         <h2>Call Tracker Login</h2>
-        <p style="text-align: center; color: #5f6368; font-size: 0.9rem; margin-bottom: 20px;">Sign in with your assigned credentials.</p>
+        <p style="text-align: center; color: #5f6368; font-size: 0.9rem; margin-bottom: 24px;">Sign in with your assigned credentials.</p>
         
         <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" id="username" placeholder="First Name Last Name">
+            <label for="username">Username / User ID</label>
+            <input type="text" id="username" placeholder="e.g. mshinde or agent_john" autocomplete="username">
         </div>
         
         <div class="form-group">
             <label for="password">Password</label>
-            <input type="password" id="password" placeholder="Emp_id">
+            <input type="password" id="password" placeholder="Enter password" autocomplete="current-password">
         </div>
 
         <button class="btn-login" onclick="handleLogin()">Sign In</button>
         <div id="error-msg" class="error-msg"></div>
 
         <div class="setup-note">
-            💡 Login:<br>
-            <strong>ID:</strong> <code>FirstName LastName</code> | <strong>Password:</strong> <code>emp.id</code>
+            Default Master Manager:<br>
+            <strong>ID:</strong> <code>mshinde</code> | <strong>Pass:</strong> <code>mshinde123</code>
         </div>
     </div>
 
     <script>
         async function handleLogin() {
-            const userField = document.getElementById('username').value.trim();
+            const userField = document.getElementById('username').value.trim().toLowerCase();
             const passField = document.getElementById('password').value.trim();
             const errorEl = document.getElementById('error-msg');
             errorEl.style.display = 'none';
@@ -70,20 +70,19 @@
             }
 
             if (!db) {
-                errorEl.innerText = "Database connection error. Check firebase-config.js.";
+                errorEl.innerText = "Database connection error. Verify firebase-config.js.";
                 errorEl.style.display = 'block';
                 return;
             }
 
             try {
-                // Check if default master manager account needs auto-seeding on first run
+                // Auto-seed default manager if missing
                 const masterRef = db.collection("users").doc("mshinde");
                 const masterSnap = await masterRef.get();
                 if (!masterSnap.exists) {
                     await masterRef.set({ username: "mshinde", password: "mshinde123", role: "manager", name: "Melwyn Shinde" });
                 }
 
-                // Query Firestore for user credentials
                 const userRef = db.collection("users").doc(userField);
                 const userDoc = await userRef.get();
 
@@ -101,24 +100,25 @@
                     return;
                 }
 
-                // Save active session token in sessionStorage
                 sessionStorage.setItem('auth_user_id', userData.username);
                 sessionStorage.setItem('auth_user_name', userData.name || userData.username);
                 sessionStorage.setItem('auth_user_role', userData.role);
 
-                // Route based on role
                 if (userData.role === 'manager') {
                     window.location.href = 'dashboard.html';
                 } else {
                     window.location.href = 'index.html';
                 }
-
             } catch (err) {
                 console.error("Login Error:", err);
-                errorEl.innerText = "An error occurred during sign in. Try again.";
+                errorEl.innerText = "Sign in failed. Check Firestore database permissions.";
                 errorEl.style.display = 'block';
             }
         }
+
+        document.getElementById('password').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
     </script>
 </body>
 </html>

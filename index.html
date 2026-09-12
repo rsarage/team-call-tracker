@@ -67,7 +67,7 @@
         .excel-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 1100px; }
         .excel-table th { background: #17365D; color: #ffffff; font-weight: 600; text-align: center; padding: 10px 8px; border: 1px solid #334155; white-space: nowrap; }
         .excel-table td { border: 1px solid #cbd5e1; padding: 4px; vertical-align: middle; background-color: #ffffff; }
-        .excel-table td input, .excel-table td select { width: 100%; border: none; outline: none; background: transparent; font-size: 0.88rem; box-sizing: border-box; padding: 6px; font-family: inherit; font-weight: 500; transition: background-color 0.2s, color 0.2s; }
+        .excel-table td input, .excel-table td select { width: 100%; border: none; outline: none; background: transparent; font-size: 0.88rem; box-sizing: border-box; padding: 6px; font-family: inherit; font-weight: 500; }
         .excel-table td input:focus, .excel-table td select:focus { background-color: #e0f2fe; border-radius: 4px; }
         
         .btn-table-action { background: transparent; border: none; cursor: pointer; font-size: 1rem; padding: 4px 6px; border-radius: 4px; transition: background 0.2s; }
@@ -95,6 +95,7 @@
     </script>
     <audio id="alarm-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
+    <!-- Standard Due Alarm -->
     <div id="alarm-modal" class="modal-overlay">
         <div class="modal-content">
             <div style="font-size: 2.5rem; margin-bottom: 5px;">🔔</div>
@@ -114,13 +115,23 @@
         </div>
     </div>
 
+    <!-- Manager Reminder Modal -->
+    <div id="manager-reminder-modal" class="modal-overlay">
+        <div class="modal-content" style="border-top: 5px solid var(--primary);">
+            <div style="font-size: 2.5rem; margin-bottom: 5px;">👨‍💼</div>
+            <h2 style="margin: 0; color: var(--primary);">Manager Reminder</h2>
+            <p id="manager-reminder-text" style="font-size: 1.1rem; margin: 20px 0; line-height: 1.5; font-weight: 500;"></p>
+            <button class="btn-action" style="background: var(--primary); padding: 10px 30px;" onclick="dismissManagerReminder()">Got it!</button>
+        </div>
+    </div>
+
     <div class="container">
         <h1 style="text-align: center; margin-bottom: 25px; margin-top: 10px;">Call Tracker - Agent Portal</h1>
         
         <div class="nav-bar">
             <div class="user-badge">
                 <label for="agent-name" style="font-weight: 600;">Agent Name:</label>
-                <input type="text" id="agent-name" style="font-weight: 600; padding: 4px 8px;" readonly>
+                <input type="text" id="agent-name" style="font-weight: 600; padding: 4px 8px; border:none; background:transparent;" readonly>
                 <span id="sync-status" class="status-badge met">🟢 Ready</span>
             </div>
             <div style="display: flex; gap: 15px; align-items: center;">
@@ -233,13 +244,13 @@
         let activeAlarmRowId = null;
         let isDataLoaded = false;
 
-        // HELPER FUNCTIONS RESTORED
         function getTodayESTString() {
             return new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
         }
 
+        // Enforce strict login credentials
         function getAgentId() {
-            return sessionStorage.getItem('auth_user_id') || 'unassigned_agent';
+            return sessionStorage.getItem('auth_user_id');
         }
 
         function getAgentName() {
@@ -258,7 +269,6 @@
         }
 
         function init() {
-            // Set name WITHOUT triggering a cloud sync immediately to prevent race conditions
             document.getElementById('agent-name').value = getAgentName();
 
             const container = document.getElementById('counters-container');
@@ -278,9 +288,54 @@
                 `;
             });
 
+            verifySessionToken();
+            listenToManagerNotifications();
             listenToTeamGoals();
             loadTodayAgentData();
             setInterval(masterScheduleTick, 1000);
+        }
+
+        // --- CONCURRENCY LOCK (Prevents duplicate instances) ---
+        function verifySessionToken() {
+            if(!db) return;
+            const myToken = sessionStorage.getItem('session_token');
+            db.collection("users").doc(getAgentId()).onSnapshot(doc => {
+                if (doc.exists) {
+                    if (doc.data().sessionToken !== myToken) {
+                        alert("⚠️ You have logged in from another device/browser. This session will now close to prevent duplicate data overwrites.");
+                        logout();
+                    }
+                }
+            });
+        }
+
+        // --- LIVE MANAGER NOTIFICATION LISTENER ---
+        function listenToManagerNotifications() {
+            if(!db) return;
+            db.collection("users").doc(getAgentId()).collection("notifications")
+              .where("read", "==", false)
+              .onSnapshot(snapshot => {
+                  snapshot.docChanges().forEach(change => {
+                      if (change.type === "added") {
+                          const data = change.doc.data();
+                          document.getElementById('manager-reminder-text').innerText = data.message;
+                          document.getElementById('manager-reminder-modal').style.display = 'flex';
+                          
+                          // Play Alert Sound
+                          const audio = document.getElementById('alarm-sound');
+                          audio.currentTime = 0;
+                          audio.play().catch(e => console.log('Audio autoplay blocked', e));
+
+                          // Mark as read immediately so it doesn't pop up again
+                          change.doc.ref.update({ read: true });
+                      }
+                  });
+              });
+        }
+
+        function dismissManagerReminder() {
+            document.getElementById('manager-reminder-modal').style.display = 'none';
+            document.getElementById('alarm-sound').pause();
         }
 
         function listenToTeamGoals() {
@@ -293,7 +348,6 @@
                     targetGoals.sv = data.sv || 3;
                 }
                 
-                // Clear "Loading..." text even if document is missing
                 document.getElementById('display-target-aht').innerText = targetGoals.aht;
                 document.getElementById('display-target-coding').innerText = targetGoals.coding + '%';
                 document.getElementById('display-target-sv').innerText = targetGoals.sv;
@@ -398,7 +452,7 @@
         }
 
         function triggerCloudSync() {
-            if (!db || !isDataLoaded) return; // Prevent saving 0s before historical data loads
+            if (!db || !isDataLoaded) return; 
             
             const statusEl = document.getElementById('sync-status');
             statusEl.innerText = "⏳ Saving...";
@@ -460,7 +514,6 @@
             } catch (err) { 
                 console.warn("Session restore failed:", err); 
             } finally {
-                // Always render and allow syncing AFTER load attempt completes
                 if (callbackRows.length === 0) addNewRow();
                 else renderCallbackTable();
                 calculateMetrics();
